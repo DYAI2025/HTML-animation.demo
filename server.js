@@ -24,7 +24,8 @@ function resolvePath(urlPath) {
   }
 
   const safePath = cleanPath === '/' ? `/${entry}` : cleanPath;
-  const filePath = normalize(join(root, safePath));
+  const relativePath = safePath.slice(1);
+  const filePath = normalize(join(root, relativePath));
   if (!filePath.startsWith(root)) return { status: 403, filePath: null };
   return { status: 200, filePath };
 }
