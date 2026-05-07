@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>The Prompt-Driven Interface — Effect Lab</title>
+<meta name="description" content="Single-file interactive animation lab with controllable web design effects, cursor systems, dark mode and performance guardrails." />
 <style>
   :root{
     --bg:#f4f0e8;
@@ -28,6 +29,62 @@
     --scroll-progress:0%;
     --grid-gap:16px;
   }
+  body.theme-dark{
+    --bg:#080b12;
+    --bg-2:#111827;
+    --ink:#f7fbff;
+    --muted:#a7b0c2;
+    --panel:rgba(12,17,28,.82);
+    --line:rgba(255,255,255,.14);
+    --accent:#8f7cff;
+    --accent-2:#24e6d2;
+    --warm:#ffb457;
+    --gold:#f3c76a;
+    --green:#30d895;
+    --violet:#a38bff;
+    --blue:#6bb7ff;
+    --shadow:0 26px 90px rgba(0,0,0,.42);
+  }
+  body.theme-dark{
+    background:
+      radial-gradient(circle at 16% 0%, rgba(143,124,255,.24), transparent 36%),
+      radial-gradient(circle at 82% 10%, rgba(36,230,210,.15), transparent 34%),
+      linear-gradient(180deg, var(--bg), #0d1422 52%, var(--bg-2));
+  }
+  body.theme-dark .grain{opacity:.06;mix-blend-mode:screen}
+  body.theme-dark .topbar,
+  body.theme-dark .eyebrow,
+  body.theme-dark .card,
+  body.theme-dark .bento-item,
+  body.theme-dark .transition-panel,
+  body.theme-dark .thread-stage,
+  body.theme-dark .guard-card,
+  body.theme-dark .metric,
+  body.theme-dark .agent-panel,
+  body.theme-dark .category{
+    background:rgba(12,17,28,.68);
+    box-shadow:var(--shadow);
+  }
+  body.theme-dark .nav a,
+  body.theme-dark .mini-btn,
+  body.theme-dark .btn,
+  body.theme-dark .transition-tab,
+  body.theme-dark .panel-action,
+  body.theme-dark .icon-btn,
+  body.theme-dark .copy-btn,
+  body.theme-dark .reopen-tab{
+    background:rgba(255,255,255,.08);
+    border-color:rgba(255,255,255,.14);
+    color:var(--ink);
+  }
+  body.theme-dark .btn.primary,
+  body.theme-dark .transition-tab.active{
+    background:linear-gradient(135deg,#f7fbff,#91a0bd);
+    color:#0b101b;
+  }
+  body.theme-dark .card::before{background:radial-gradient(520px circle at var(--mx,50%) var(--my,50%), rgba(36,230,210,.24), transparent 44%)}
+  body.theme-dark .core-face{background:linear-gradient(135deg,rgba(255,255,255,.28),rgba(143,124,255,.12));border-color:rgba(255,255,255,.28)}
+  body.theme-dark .core-ring{border-color:rgba(36,230,210,.34)}
   *{box-sizing:border-box}
   html{scroll-behavior:auto}
   body{
@@ -418,7 +475,8 @@
     background:rgba(255,255,255,.58);
     overflow:hidden;
     position:relative;
-    transition:border-color .35s ease, background .35s ease;
+    transition:border-color .35s ease, background .35s ease, transform .45s var(--ease);
+    will-change:transform;
   }
   .bento-item strong{display:block;font-size:22px;letter-spacing:-.04em}
   .bento-item span{color:var(--muted);font-size:13px;font-weight:700}
@@ -838,6 +896,42 @@
     box-shadow:0 18px 50px rgba(23,32,27,.28);
   }
   .tooltip.visible{opacity:1;transform:translateY(0)}
+  .theme-toggle{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    min-width:112px;
+  }
+  .theme-toggle .theme-icon{font-size:15px;line-height:1}
+  body.fx-fluid #fx-canvas,
+  body.fx-liquid #fx-canvas,
+  body.fx-cursor #fx-canvas,
+  body.fx-cursorSpotlight #fx-canvas,
+  body.fx-cursorElastic #fx-canvas{
+    z-index:0;
+  }
+  body.fx-cursorSpotlight #fx-canvas,
+  body.fx-cursorElastic #fx-canvas{
+    mix-blend-mode:screen;
+  }
+  body.fx-cursorElastic .btn:hover,
+  body.fx-cursorElastic .transition-tab:hover{
+    border-color:rgba(36,230,210,.35);
+  }
+  @supports not (animation-timeline: scroll()) {
+    body.fx-cssThread .thread-bar{
+      transform:scaleY(calc(.28 + (var(--scroll-progress-num,0) * .85)));
+      opacity:calc(.28 + (var(--scroll-progress-num,0) * .42));
+    }
+  }
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{
+      animation-duration:.001ms !important;
+      animation-iteration-count:1 !important;
+      scroll-behavior:auto !important;
+      transition-duration:.001ms !important;
+    }
+  }
 
   @media (max-width:900px){
     .hero,.section-head,.transition-stage,.guardrail{grid-template-columns:1fr}
@@ -894,6 +988,7 @@
       <a class="magnetic" href="#type">Typography</a>
       <a class="magnetic" href="#access">Guardrails</a>
     </nav>
+    <button id="themeToggle" class="mini-btn theme-toggle magnetic" type="button" aria-pressed="false"><span class="theme-icon">☾</span><span class="theme-label">Dark</span></button>
   </header>
 
   <main>
@@ -1031,7 +1126,7 @@
       <div class="analytics-grid revealable">
         <div class="metric"><strong>Canvas</strong><span>Fluid and distortion layers</span></div>
         <div class="metric"><strong>3D</strong><span>CSS transform scene</span></div>
-        <div class="metric"><strong>Cursor</strong><span>Trail and aura loop</span></div>
+        <div class="metric"><strong>Cursor</strong><span>Trail, spotlight and elastic blob</span></div>
         <div class="metric"><strong>FPS</strong><span>Live feedback</span></div>
       </div>
       <div class="bar-chart revealable">
@@ -1150,6 +1245,18 @@
       prompt:`Implement a “Quantum Cursor Trail”. Hide the default cursor on desktop while active. Track the real pointer position for a small primary dot, and maintain a secondary aura that follows via linear interpolation around 0.15. Draw a fading trail on canvas using alpha decay rather than clearing fully each frame. Enlarge or brighten the cursor over interactive elements. Disable on touch devices and under reduced motion.`
     },
     {
+      id:'cursorSpotlight', cat:'Interaction & Cursor', num:'5.2', color:'#16885f', title:'Editorial Cursor Spotlight',
+      desc:'Paints a soft masked light cone that follows intent.',
+      tip:'A modern editorial cursor treatment: no hidden pointer, just a subtle spotlight that makes dark mode and dense cards more legible.',
+      prompt:`Implement an “Editorial Cursor Spotlight”. Keep the native cursor visible, track pointer position, and render a large radial light field on a fixed canvas. Use low alpha, additive blending, and a warm accent rim so the effect highlights content without blocking clicks. Intensify slightly over interactive elements. Disable automatically for reduced motion and touch devices.`
+    },
+    {
+      id:'cursorElastic', cat:'Interaction & Cursor', num:'5.3', color:'#16885f', title:'Elastic Blob Cursor',
+      desc:'Adds a springy morphing blob with velocity stretch.',
+      tip:'A distinct modern product cursor: the blob eases behind the pointer, stretches with movement velocity and compresses over controls.',
+      prompt:`Implement an “Elastic Blob Cursor”. Draw a translucent pill or blob on a fixed canvas that follows the pointer with spring-like interpolation. Stretch it in the direction of travel based on velocity, rotate it toward the movement vector, and shrink or brighten over buttons and links. Leave the system cursor visible unless paired with a dedicated trail mode, and disable for reduced motion or coarse pointers.`
+    },
+    {
       id:'reduced', cat:'Accessibility & Guardrails', num:'6.1', color:'#2476ce', title:'Reduced Motion Guardrail',
       desc:'Flattens motion-heavy effects while preserving function.',
       tip:'Simulates prefers-reduced-motion: disables parallax, magnetic pull, 3D rotation and heavy canvas movement.',
@@ -1165,6 +1272,12 @@
   const reopen = document.getElementById('reopenPanel');
   const effectsList = document.getElementById('effectsList');
   const tooltip = document.getElementById('tooltip');
+  const themeToggle = document.getElementById('themeToggle');
+  const coreStage = document.getElementById('coreStage');
+  const scrollProgressEl = document.getElementById('scroll-progress');
+  const finePointer = matchMedia('(pointer:fine)').matches;
+  const cardEls = [...document.querySelectorAll('.card')];
+  const magneticEls = [...document.querySelectorAll('.magnetic')];
 
   const cats = [...new Set(EFFECTS.map(e => e.cat))];
   cats.forEach(cat => {
@@ -1193,6 +1306,23 @@
     });
     effectsList.appendChild(group);
   });
+
+  function setTheme(theme){
+    const isDark = theme === 'dark';
+    body.classList.toggle('theme-dark', isDark);
+    themeToggle.setAttribute('aria-pressed', String(isDark));
+    themeToggle.querySelector('.theme-icon').textContent = isDark ? '☀' : '☾';
+    themeToggle.querySelector('.theme-label').textContent = isDark ? 'Bright' : 'Dark';
+    try { localStorage.setItem('effect-lab-theme', theme); } catch (_) {}
+  }
+  let storedTheme = '';
+  try { storedTheme = localStorage.getItem('effect-lab-theme') || ''; } catch (_) {}
+  setTheme(storedTheme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+  themeToggle.addEventListener('click', () => setTheme(body.classList.contains('theme-dark') ? 'light' : 'dark'));
+
+  function updateCursorVisibility(){
+    body.classList.toggle('hide-cursor', state.cursor && !state.reduced && finePointer);
+  }
 
   function copyText(text){
     if(navigator.clipboard && window.isSecureContext){
@@ -1250,12 +1380,12 @@
   function setEffect(id, value, skipInput=false){
     state[id] = value;
     body.classList.toggle('fx-' + id, value);
-    if(id === 'cursor') body.classList.toggle('hide-cursor', value && !state.reduced);
+    if(id === 'cursor') updateCursorVisibility();
     if(id === 'smooth') toggleSmooth(value);
     if(id === 'bento' && value) cycleBento();
     if(id === 'reveal') updateReveal(true);
     if(id === 'reduced') {
-      body.classList.toggle('hide-cursor', state.cursor && !value);
+      updateCursorVisibility();
       if(value) resetMagnetics();
     }
     if(!skipInput && inputFor(id)) inputFor(id).checked = value;
@@ -1270,7 +1400,7 @@
   document.getElementById('allOff').addEventListener('click', allOff);
   document.getElementById('demoPreset').addEventListener('click', () => {
     allOff();
-    ['magnetic','bento','reveal','kinetic','fluid','core','cssThread'].forEach(id => setEffect(id, true));
+    ['magnetic','bento','reveal','kinetic','fluid','core','cssThread','cursorSpotlight'].forEach(id => setEffect(id, true));
   });
   document.getElementById('safeShowcase').addEventListener('click', () => {
     allOff();
@@ -1425,18 +1555,28 @@
   });
 
   // Magnetic and card glow
-  const mouse = {x:-999,y:-999, lx:-999, ly:-999};
+  const mouse = {x:-999,y:-999, lx:-999, ly:-999, vx:0, vy:0, interactive:false};
   function resetMagnetics(){
-    document.querySelectorAll('.magnetic').forEach(el => el.style.transform = '');
+    magneticEls.forEach(el => el.style.transform = '');
   }
-  document.addEventListener('mousemove', e => {
+  let pointerFrame = 0;
+  function isInteractiveTarget(target){
+    return Boolean(target.closest('a,button,input,label,.transition-tab,.copy-btn,.effect-row'));
+  }
+  document.addEventListener('pointermove', e => {
+    if(!finePointer) return;
     mouse.x = e.clientX; mouse.y = e.clientY;
-    document.querySelectorAll('.card').forEach(card => {
-      const r = card.getBoundingClientRect();
-      card.style.setProperty('--mx', `${e.clientX - r.left}px`);
-      card.style.setProperty('--my', `${e.clientY - r.top}px`);
-    });
-    const coreStage = document.getElementById('coreStage');
+    mouse.interactive = isInteractiveTarget(e.target);
+    if(!pointerFrame){
+      pointerFrame = requestAnimationFrame(() => {
+        pointerFrame = 0;
+        cardEls.forEach(card => {
+          const r = card.getBoundingClientRect();
+          card.style.setProperty('--mx', `${mouse.x - r.left}px`);
+          card.style.setProperty('--my', `${mouse.y - r.top}px`);
+        });
+      });
+    }
     if(state.core && !state.reduced){
       const rect = coreStage.getBoundingClientRect();
       const nx = ((e.clientX - rect.left) / rect.width - .5);
@@ -1445,7 +1585,7 @@
       document.documentElement.style.setProperty('--tilt-x', `${-ny * 16}deg`);
     }
     if(state.magnetic && !state.reduced){
-      document.querySelectorAll('.magnetic').forEach(el => {
+      magneticEls.forEach(el => {
         const r = el.getBoundingClientRect();
         const cx = r.left + r.width/2, cy = r.top + r.height/2;
         const d = Math.hypot(e.clientX - cx, e.clientY - cy);
@@ -1490,8 +1630,9 @@
     const max = document.documentElement.scrollHeight - window.innerHeight;
     scrollProg = max ? y / max : 0;
     document.documentElement.style.setProperty('--scroll-progress', (scrollProg*100).toFixed(2)+'%');
+    document.documentElement.style.setProperty('--scroll-progress-num', scrollProg.toFixed(3));
     if(state.cssThread && !CSS.supports('animation-timeline: scroll()')){
-      document.getElementById('scroll-progress').style.width = (scrollProg*100) + '%';
+      scrollProgressEl.style.width = (scrollProg*100) + '%';
     }
     updateKinetic();
   }, {passive:true});
@@ -1529,10 +1670,10 @@
       out.style.color = fps < 45 ? '#d84c4c' : fps < 55 ? '#d98b35' : '#16885f';
       fpsFrames = 0; fpsLast = now;
     }
-    const activeCanvas = (state.fluid || state.liquid || state.cursor) && !state.reduced;
+    const activeCanvas = (state.fluid || state.liquid || (finePointer && (state.cursor || state.cursorSpotlight || state.cursorElastic))) && !state.reduced;
     if(activeCanvas){
       if(state.cursor){
-        ctx.fillStyle = 'rgba(244,240,232,.16)';
+        ctx.fillStyle = body.classList.contains('theme-dark') ? 'rgba(8,11,18,.18)' : 'rgba(244,240,232,.16)';
         ctx.fillRect(0,0,W,H);
       } else {
         ctx.clearRect(0,0,W,H);
@@ -1566,25 +1707,60 @@
         ctx.restore();
         scrollVel *= .92;
       }
+      if((state.cursor || state.cursorSpotlight || state.cursorElastic) && mouse.x !== -999){
+        const ease = state.cursorElastic ? .18 : .16;
+        mouse.lx += (mouse.x - mouse.lx) * ease;
+        mouse.ly += (mouse.y - mouse.ly) * ease;
+        mouse.vx = mouse.x - mouse.lx;
+        mouse.vy = mouse.y - mouse.ly;
+      }
+      if(state.cursorSpotlight && mouse.x !== -999){
+        const radius = mouse.interactive ? 190 : 150;
+        const g = ctx.createRadialGradient(mouse.x,mouse.y,0,mouse.x,mouse.y,radius);
+        g.addColorStop(0,'rgba(255,255,255,.22)');
+        g.addColorStop(.38,'rgba(36,230,210,.13)');
+        g.addColorStop(1,'rgba(36,230,210,0)');
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(mouse.x,mouse.y,radius,0,Math.PI*2);
+        ctx.fill();
+        ctx.restore();
+      }
+      if(state.cursorElastic && mouse.x !== -999){
+        const speed = Math.min(1, Math.hypot(mouse.vx, mouse.vy) / 80);
+        const angle = Math.atan2(mouse.vy, mouse.vx);
+        ctx.save();
+        ctx.translate(mouse.lx, mouse.ly);
+        ctx.rotate(angle);
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = mouse.interactive ? 'rgba(36,230,210,.30)' : 'rgba(143,124,255,.24)';
+        ctx.beginPath();
+        ctx.ellipse(0,0,22 + speed*24, mouse.interactive ? 11 : 16 - speed*4,0,0,Math.PI*2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,.36)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.restore();
+      }
       if(state.cursor && mouse.x !== -999){
-        mouse.lx += (mouse.x - mouse.lx) * .16;
-        mouse.ly += (mouse.y - mouse.ly) * .16;
         trail.push({x:mouse.lx,y:mouse.ly,life:1});
         while(trail.length > 28) trail.shift();
         trail.forEach((p, i) => {
           p.life *= .93;
           ctx.beginPath();
           ctx.arc(p.x,p.y,Math.max(1, 8*p.life*(i/trail.length)),0,Math.PI*2);
-          ctx.fillStyle = `rgba(107,92,255,${.28*p.life})`;
+          ctx.fillStyle = `rgba(143,124,255,${.32*p.life})`;
           ctx.fill();
         });
         ctx.beginPath();
         ctx.arc(mouse.x,mouse.y,4.5,0,Math.PI*2);
-        ctx.fillStyle = '#17201b';
+        ctx.fillStyle = body.classList.contains('theme-dark') ? '#f7fbff' : '#17201b';
         ctx.fill();
         ctx.beginPath();
-        ctx.arc(mouse.lx,mouse.ly,26,0,Math.PI*2);
-        ctx.strokeStyle = 'rgba(107,92,255,.58)';
+        ctx.arc(mouse.lx,mouse.ly,mouse.interactive ? 34 : 26,0,Math.PI*2);
+        ctx.strokeStyle = mouse.interactive ? 'rgba(36,230,210,.72)' : 'rgba(143,124,255,.58)';
         ctx.lineWidth = 1.2;
         ctx.stroke();
       }
@@ -1599,7 +1775,7 @@
   // keyboard safety
   document.addEventListener('keydown', e => {
     if(e.key === 'Escape'){
-      ['fluid','liquid','cursor','smooth','core','magnetic'].forEach(id => setEffect(id, false));
+      ['fluid','liquid','cursor','cursorSpotlight','cursorElastic','smooth','core','magnetic'].forEach(id => setEffect(id, false));
     }
   });
 
