@@ -33,9 +33,9 @@
     --bg:#080b12;
     --bg-2:#111827;
     --ink:#f7fbff;
-    --muted:#a7b0c2;
-    --panel:rgba(12,17,28,.82);
-    --line:rgba(255,255,255,.14);
+    --muted:#c3ccdc;
+    --panel:rgba(13,19,32,.9);
+    --line:rgba(255,255,255,.2);
     --accent:#8f7cff;
     --accent-2:#24e6d2;
     --warm:#ffb457;
@@ -62,7 +62,7 @@
   body.theme-dark .metric,
   body.theme-dark .agent-panel,
   body.theme-dark .category{
-    background:rgba(12,17,28,.68);
+    background:rgba(12,17,28,.82);
     box-shadow:var(--shadow);
   }
   body.theme-dark .nav a,
@@ -85,6 +85,13 @@
   body.theme-dark .card::before{background:radial-gradient(520px circle at var(--mx,50%) var(--my,50%), rgba(36,230,210,.24), transparent 44%)}
   body.theme-dark .core-face{background:linear-gradient(135deg,rgba(255,255,255,.28),rgba(143,124,255,.12));border-color:rgba(255,255,255,.28)}
   body.theme-dark .core-ring{border-color:rgba(36,230,210,.34)}
+  body.theme-dark .panel-head,
+  body.theme-dark .cat-head,
+  body.theme-dark .effect-row{border-color:rgba(255,255,255,.12)}
+  body.theme-dark .perf-tile{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.13)}
+  body.theme-dark .slider{background:#334052}
+  body.theme-dark .switch input:checked + .slider{box-shadow:0 0 0 3px rgba(48,216,149,.18), 0 0 22px rgba(48,216,149,.25)}
+  body.theme-dark .tooltip{background:#f7fbff;color:#0b101b;box-shadow:0 18px 50px rgba(0,0,0,.42)}
   *{box-sizing:border-box}
   html{scroll-behavior:auto}
   body{
@@ -143,13 +150,19 @@
     @keyframes scrollProgress{to{transform:scaleX(1)}}
   }
 
-  #fx-canvas{
+  #fx-canvas,
+  #cursor-canvas{
     position:fixed;
     inset:0;
-    z-index:-2;
     width:100%;
     height:100%;
     pointer-events:none;
+  }
+  #fx-canvas{z-index:-2}
+  #cursor-canvas{
+    z-index:150;
+    opacity:0;
+    transition:opacity .18s ease;
   }
   .grain{
     position:fixed;
@@ -904,14 +917,22 @@
   }
   .theme-toggle .theme-icon{font-size:15px;line-height:1}
   body.fx-fluid #fx-canvas,
-  body.fx-liquid #fx-canvas,
-  body.fx-cursor #fx-canvas,
-  body.fx-cursorSpotlight #fx-canvas,
-  body.fx-cursorElastic #fx-canvas{
+  body.fx-liquid #fx-canvas{
     z-index:0;
   }
-  body.fx-cursorSpotlight #fx-canvas,
-  body.fx-cursorElastic #fx-canvas{
+  body.fx-cursor #cursor-canvas,
+  body.fx-cursorSpotlight #cursor-canvas,
+  body.fx-cursorElastic #cursor-canvas,
+  body.fx-cursorPrism #cursor-canvas,
+  body.fx-clickRipple #cursor-canvas,
+  body.fx-cursorConstellation #cursor-canvas{
+    opacity:1;
+  }
+  body.fx-cursorSpotlight #cursor-canvas,
+  body.fx-cursorElastic #cursor-canvas,
+  body.fx-cursorPrism #cursor-canvas,
+  body.fx-clickRipple #cursor-canvas,
+  body.fx-cursorConstellation #cursor-canvas{
     mix-blend-mode:screen;
   }
   body.fx-cursorElastic .btn:hover,
@@ -952,6 +973,7 @@
 <body>
 <div id="scroll-progress"></div>
 <canvas id="fx-canvas"></canvas>
+<canvas id="cursor-canvas"></canvas>
 <div class="grain"></div>
 <div id="tooltip" class="tooltip"></div>
 
@@ -1257,6 +1279,24 @@
       prompt:`Implement an “Elastic Blob Cursor”. Draw a translucent pill or blob on a fixed canvas that follows the pointer with spring-like interpolation. Stretch it in the direction of travel based on velocity, rotate it toward the movement vector, and shrink or brighten over buttons and links. Leave the system cursor visible unless paired with a dedicated trail mode, and disable for reduced motion or coarse pointers.`
     },
     {
+      id:'cursorPrism', cat:'Interaction & Cursor', num:'5.4', color:'#16885f', title:'Prismatic Cursor Rings',
+      desc:'Adds high-contrast chromatic orbit rings around intent.',
+      tip:'Separate overlay canvas keeps the effect visible above cards and panels; the rings brighten automatically in dark mode.',
+      prompt:`Implement “Prismatic Cursor Rings”. Use a dedicated pointer-events-none overlay canvas above the UI. Draw two to three thin orbiting rings around the cursor with alternating accent colors, additive blending, and a stronger white keyline in dark mode. Make rings expand over interactive controls, avoid hiding the native cursor, and disable on coarse pointers or reduced motion.`
+    },
+    {
+      id:'clickRipple', cat:'Interaction & Cursor', num:'5.5', color:'#16885f', title:'Click Ripple Pulse',
+      desc:'Sends an accessible ripple from every pointer press.',
+      tip:'Pointerdown creates expanding rings that remain visible on dark panels because they render in the overlay cursor layer.',
+      prompt:`Implement a “Click Ripple Pulse”. Listen for pointerdown on fine pointers, store ripple origins, and draw expanding circles on an overlay canvas. Fade each ripple over roughly 700ms, use higher-contrast colors in dark mode, intensify on interactive elements, and remove completed ripples to keep the frame budget small.`
+    },
+    {
+      id:'cursorConstellation', cat:'Interaction & Cursor', num:'5.6', color:'#16885f', title:'Cursor Constellation Links',
+      desc:'Connects trailing particles into a tiny intent graph.',
+      tip:'A visible AI-agent metaphor: the cursor leaves linked nodes that fade quickly and stay legible in both themes.',
+      prompt:`Implement “Cursor Constellation Links”. Sample the eased cursor position into a short particle trail, draw small luminous nodes, and connect nearby nodes with thin lines whose opacity fades by age and distance. Use additive blending, theme-aware colors, and cap particle count to protect performance. Disable on touch devices and under reduced motion.`
+    },
+    {
       id:'reduced', cat:'Accessibility & Guardrails', num:'6.1', color:'#2476ce', title:'Reduced Motion Guardrail',
       desc:'Flattens motion-heavy effects while preserving function.',
       tip:'Simulates prefers-reduced-motion: disables parallax, magnetic pull, 3D rotation and heavy canvas movement.',
@@ -1400,7 +1440,7 @@
   document.getElementById('allOff').addEventListener('click', allOff);
   document.getElementById('demoPreset').addEventListener('click', () => {
     allOff();
-    ['magnetic','bento','reveal','kinetic','fluid','core','cssThread','cursorSpotlight'].forEach(id => setEffect(id, true));
+    ['magnetic','bento','reveal','kinetic','fluid','core','cssThread','cursorSpotlight','cursorPrism'].forEach(id => setEffect(id, true));
   });
   document.getElementById('safeShowcase').addEventListener('click', () => {
     allOff();
@@ -1600,18 +1640,29 @@
       });
     }
   });
+
+  document.addEventListener('pointerdown', e => {
+    if(!finePointer || state.reduced || !state.clickRipple) return;
+    ripples.push({x:e.clientX,y:e.clientY,t:performance.now(),interactive:isInteractiveTarget(e.target)});
+    while(ripples.length > 10) ripples.shift();
+  });
   document.addEventListener('mouseleave', resetMagnetics);
 
   // Canvas
   const canvas = document.getElementById('fx-canvas');
   const ctx = canvas.getContext('2d');
+  const cursorCanvas = document.getElementById('cursor-canvas');
+  const cursorCtx = cursorCanvas.getContext('2d');
   let W = 0, H = 0, dpr = 1;
   function resize(){
     dpr = Math.min(window.devicePixelRatio || 1, 2);
     W = window.innerWidth; H = window.innerHeight;
-    canvas.width = Math.floor(W*dpr); canvas.height = Math.floor(H*dpr);
-    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+    [canvas, cursorCanvas].forEach(c => {
+      c.width = Math.floor(W*dpr); c.height = Math.floor(H*dpr);
+      c.style.width = W + 'px'; c.style.height = H + 'px';
+    });
     ctx.setTransform(dpr,0,0,dpr,0,0);
+    cursorCtx.setTransform(dpr,0,0,dpr,0,0);
   }
   window.addEventListener('resize', resize, {passive:true});
   resize();
@@ -1622,6 +1673,9 @@
     {x:.52,y:.82,r:520,c:'rgba(217,139,53,.10)',vx:.0001,vy:-.00013}
   ];
   const trail = [];
+  const ripples = [];
+  const constellation = [];
+  let lastConstellationSample = 0;
   let lastScroll = window.scrollY, scrollVel = 0, scrollProg = 0;
   window.addEventListener('scroll', () => {
     const y = window.scrollY;
@@ -1670,14 +1724,10 @@
       out.style.color = fps < 45 ? '#d84c4c' : fps < 55 ? '#d98b35' : '#16885f';
       fpsFrames = 0; fpsLast = now;
     }
-    const activeCanvas = (state.fluid || state.liquid || (finePointer && (state.cursor || state.cursorSpotlight || state.cursorElastic))) && !state.reduced;
+    const activeCanvas = (state.fluid || state.liquid) && !state.reduced;
+    const activeCursorCanvas = finePointer && (state.cursor || state.cursorSpotlight || state.cursorElastic || state.cursorPrism || state.clickRipple || state.cursorConstellation) && !state.reduced;
     if(activeCanvas){
-      if(state.cursor){
-        ctx.fillStyle = body.classList.contains('theme-dark') ? 'rgba(8,11,18,.18)' : 'rgba(244,240,232,.16)';
-        ctx.fillRect(0,0,W,H);
-      } else {
-        ctx.clearRect(0,0,W,H);
-      }
+      ctx.clearRect(0,0,W,H);
       if(state.fluid){
         blobs.forEach((b,idx) => {
           const t = now * .001;
@@ -1707,65 +1757,146 @@
         ctx.restore();
         scrollVel *= .92;
       }
-      if((state.cursor || state.cursorSpotlight || state.cursorElastic) && mouse.x !== -999){
-        const ease = state.cursorElastic ? .18 : .16;
+    } else {
+      ctx.clearRect(0,0,W,H);
+    }
+
+    if(activeCursorCanvas){
+      cursorCtx.clearRect(0,0,W,H);
+      if((state.cursor || state.cursorSpotlight || state.cursorElastic || state.cursorPrism || state.cursorConstellation) && mouse.x !== -999){
+        const ease = state.cursorElastic ? .18 : .2;
+        if(mouse.lx === -999){ mouse.lx = mouse.x; mouse.ly = mouse.y; }
         mouse.lx += (mouse.x - mouse.lx) * ease;
         mouse.ly += (mouse.y - mouse.ly) * ease;
         mouse.vx = mouse.x - mouse.lx;
         mouse.vy = mouse.y - mouse.ly;
       }
+      const dark = body.classList.contains('theme-dark');
+      const key = dark ? 'rgba(255,255,255,.92)' : 'rgba(9,14,24,.86)';
+      const teal = dark ? 'rgba(36,230,210,.78)' : 'rgba(14,132,121,.62)';
+      const violet = dark ? 'rgba(163,139,255,.72)' : 'rgba(107,92,255,.54)';
+      const warm = dark ? 'rgba(255,180,87,.62)' : 'rgba(217,139,53,.5)';
+
       if(state.cursorSpotlight && mouse.x !== -999){
-        const radius = mouse.interactive ? 190 : 150;
-        const g = ctx.createRadialGradient(mouse.x,mouse.y,0,mouse.x,mouse.y,radius);
-        g.addColorStop(0,'rgba(255,255,255,.22)');
-        g.addColorStop(.38,'rgba(36,230,210,.13)');
+        const radius = mouse.interactive ? 210 : 165;
+        const g = cursorCtx.createRadialGradient(mouse.x,mouse.y,0,mouse.x,mouse.y,radius);
+        g.addColorStop(0,dark ? 'rgba(255,255,255,.26)' : 'rgba(255,255,255,.18)');
+        g.addColorStop(.34,dark ? 'rgba(36,230,210,.18)' : 'rgba(18,184,166,.13)');
+        g.addColorStop(.72,dark ? 'rgba(143,124,255,.08)' : 'rgba(107,92,255,.07)');
         g.addColorStop(1,'rgba(36,230,210,0)');
-        ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.arc(mouse.x,mouse.y,radius,0,Math.PI*2);
-        ctx.fill();
-        ctx.restore();
+        cursorCtx.save();
+        cursorCtx.globalCompositeOperation = 'lighter';
+        cursorCtx.fillStyle = g;
+        cursorCtx.beginPath();
+        cursorCtx.arc(mouse.x,mouse.y,radius,0,Math.PI*2);
+        cursorCtx.fill();
+        cursorCtx.restore();
       }
       if(state.cursorElastic && mouse.x !== -999){
         const speed = Math.min(1, Math.hypot(mouse.vx, mouse.vy) / 80);
         const angle = Math.atan2(mouse.vy, mouse.vx);
-        ctx.save();
-        ctx.translate(mouse.lx, mouse.ly);
-        ctx.rotate(angle);
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.fillStyle = mouse.interactive ? 'rgba(36,230,210,.30)' : 'rgba(143,124,255,.24)';
-        ctx.beginPath();
-        ctx.ellipse(0,0,22 + speed*24, mouse.interactive ? 11 : 16 - speed*4,0,0,Math.PI*2);
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(255,255,255,.36)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        ctx.restore();
+        cursorCtx.save();
+        cursorCtx.translate(mouse.lx, mouse.ly);
+        cursorCtx.rotate(angle);
+        cursorCtx.globalCompositeOperation = 'lighter';
+        cursorCtx.fillStyle = mouse.interactive ? teal : violet;
+        cursorCtx.beginPath();
+        cursorCtx.ellipse(0,0,24 + speed*28, mouse.interactive ? 12 : 17 - speed*4,0,0,Math.PI*2);
+        cursorCtx.fill();
+        cursorCtx.strokeStyle = key;
+        cursorCtx.lineWidth = dark ? 1.5 : 1.1;
+        cursorCtx.stroke();
+        cursorCtx.restore();
+      }
+      if(state.cursorPrism && mouse.x !== -999){
+        const t = now * .003;
+        cursorCtx.save();
+        cursorCtx.translate(mouse.x, mouse.y);
+        cursorCtx.globalCompositeOperation = 'lighter';
+        [0,1,2].forEach(i => {
+          const r = (mouse.interactive ? 34 : 25) + i*7 + Math.sin(t+i)*2;
+          cursorCtx.rotate(t*.16 + i*.7);
+          cursorCtx.beginPath();
+          cursorCtx.ellipse(Math.cos(t+i)*3, Math.sin(t*1.3+i)*3, r, r*.58, 0, Math.PI*.12, Math.PI*1.72);
+          cursorCtx.strokeStyle = i === 0 ? key : i === 1 ? teal : warm;
+          cursorCtx.lineWidth = i === 0 ? 1.35 : 1;
+          cursorCtx.stroke();
+        });
+        cursorCtx.restore();
+      }
+      if(state.clickRipple){
+        for(let i=ripples.length-1;i>=0;i--){
+          const rp = ripples[i];
+          const p = (now - rp.t) / 720;
+          if(p >= 1){ ripples.splice(i,1); continue; }
+          const alpha = (1-p) * (rp.interactive ? .9 : .62);
+          cursorCtx.save();
+          cursorCtx.globalCompositeOperation = 'lighter';
+          cursorCtx.beginPath();
+          cursorCtx.arc(rp.x,rp.y,10 + p*68,0,Math.PI*2);
+          cursorCtx.strokeStyle = dark ? `rgba(36,230,210,${alpha})` : `rgba(14,132,121,${alpha})`;
+          cursorCtx.lineWidth = 2.2 - p;
+          cursorCtx.stroke();
+          cursorCtx.beginPath();
+          cursorCtx.arc(rp.x,rp.y,4 + p*22,0,Math.PI*2);
+          cursorCtx.strokeStyle = `rgba(255,255,255,${alpha*.75})`;
+          cursorCtx.stroke();
+          cursorCtx.restore();
+        }
+      }
+      if(state.cursorConstellation && mouse.x !== -999){
+        if(now - lastConstellationSample > 34){
+          constellation.push({x:mouse.lx,y:mouse.ly,life:1});
+          lastConstellationSample = now;
+          while(constellation.length > 18) constellation.shift();
+        }
+        cursorCtx.save();
+        cursorCtx.globalCompositeOperation = 'lighter';
+        for(let i=0;i<constellation.length;i++){
+          const a = constellation[i];
+          a.life *= .955;
+          for(let j=i+1;j<constellation.length;j++){
+            const b = constellation[j];
+            const d = Math.hypot(a.x-b.x, a.y-b.y);
+            if(d < 82){
+              cursorCtx.beginPath();
+              cursorCtx.moveTo(a.x,a.y); cursorCtx.lineTo(b.x,b.y);
+              cursorCtx.strokeStyle = dark ? `rgba(163,139,255,${(1-d/82)*a.life*.28})` : `rgba(107,92,255,${(1-d/82)*a.life*.22})`;
+              cursorCtx.lineWidth = 1;
+              cursorCtx.stroke();
+            }
+          }
+          cursorCtx.beginPath();
+          cursorCtx.arc(a.x,a.y,Math.max(1.5, 4*a.life),0,Math.PI*2);
+          cursorCtx.fillStyle = dark ? `rgba(247,251,255,${a.life*.66})` : `rgba(9,14,24,${a.life*.48})`;
+          cursorCtx.fill();
+        }
+        cursorCtx.restore();
       }
       if(state.cursor && mouse.x !== -999){
         trail.push({x:mouse.lx,y:mouse.ly,life:1});
         while(trail.length > 28) trail.shift();
         trail.forEach((p, i) => {
           p.life *= .93;
-          ctx.beginPath();
-          ctx.arc(p.x,p.y,Math.max(1, 8*p.life*(i/trail.length)),0,Math.PI*2);
-          ctx.fillStyle = `rgba(143,124,255,${.32*p.life})`;
-          ctx.fill();
+          cursorCtx.beginPath();
+          cursorCtx.arc(p.x,p.y,Math.max(1, 9*p.life*(i/trail.length)),0,Math.PI*2);
+          cursorCtx.fillStyle = dark ? `rgba(36,230,210,${.38*p.life})` : `rgba(107,92,255,${.34*p.life})`;
+          cursorCtx.fill();
         });
-        ctx.beginPath();
-        ctx.arc(mouse.x,mouse.y,4.5,0,Math.PI*2);
-        ctx.fillStyle = body.classList.contains('theme-dark') ? '#f7fbff' : '#17201b';
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(mouse.lx,mouse.ly,mouse.interactive ? 34 : 26,0,Math.PI*2);
-        ctx.strokeStyle = mouse.interactive ? 'rgba(36,230,210,.72)' : 'rgba(143,124,255,.58)';
-        ctx.lineWidth = 1.2;
-        ctx.stroke();
+        cursorCtx.beginPath();
+        cursorCtx.arc(mouse.x,mouse.y,5,0,Math.PI*2);
+        cursorCtx.fillStyle = key;
+        cursorCtx.fill();
+        cursorCtx.beginPath();
+        cursorCtx.arc(mouse.lx,mouse.ly,mouse.interactive ? 36 : 27,0,Math.PI*2);
+        cursorCtx.strokeStyle = mouse.interactive ? teal : violet;
+        cursorCtx.lineWidth = dark ? 1.7 : 1.3;
+        cursorCtx.stroke();
       }
     } else {
-      ctx.clearRect(0,0,W,H);
+      cursorCtx.clearRect(0,0,W,H);
+      ripples.length = 0;
+      constellation.length = 0;
     }
     updateKinetic();
     requestAnimationFrame(draw);
@@ -1775,7 +1906,7 @@
   // keyboard safety
   document.addEventListener('keydown', e => {
     if(e.key === 'Escape'){
-      ['fluid','liquid','cursor','cursorSpotlight','cursorElastic','smooth','core','magnetic'].forEach(id => setEffect(id, false));
+      ['fluid','liquid','cursor','cursorSpotlight','cursorElastic','cursorPrism','clickRipple','cursorConstellation','smooth','core','magnetic'].forEach(id => setEffect(id, false));
     }
   });
 
