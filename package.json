@@ -5,7 +5,7 @@
   "description": "Single-file interactive frontend animation demo prepared for Railway deployment.",
   "scripts": {
     "start": "node server.js",
-    "test": "node --check server.js && node scripts/check-html.js"
+    "test": "node --check server.js && node scripts/check-html.js && node scripts/check-server.js"
   },
   "engines": {
     "node": ">=20"
