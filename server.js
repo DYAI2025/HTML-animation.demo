@@ -15,11 +15,18 @@ const contentTypes = {
 };
 
 function resolvePath(urlPath) {
-  const cleanPath = decodeURIComponent(urlPath.split('?')[0]);
+  let cleanPath;
+  try {
+    cleanPath = decodeURIComponent(urlPath.split('?')[0]);
+  } catch (error) {
+    if (error instanceof URIError) return { status: 400, filePath: null };
+    throw error;
+  }
+
   const safePath = cleanPath === '/' ? `/${entry}` : cleanPath;
   const filePath = normalize(join(root, safePath));
-  if (!filePath.startsWith(root)) return null;
-  return filePath;
+  if (!filePath.startsWith(root)) return { status: 403, filePath: null };
+  return { status: 200, filePath };
 }
 
 const server = http.createServer((req, res) => {
@@ -29,10 +36,11 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  const filePath = resolvePath(req.url || '/');
+  const { status, filePath } = resolvePath(req.url || '/');
   if (!filePath) {
-    res.writeHead(403, { 'content-type': 'text/plain; charset=utf-8' });
-    res.end('Forbidden');
+    const message = status === 400 ? 'Bad request' : 'Forbidden';
+    res.writeHead(status, { 'content-type': 'text/plain; charset=utf-8' });
+    res.end(message);
     return;
   }
 
